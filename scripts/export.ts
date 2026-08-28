@@ -1,11 +1,32 @@
-import { existsSync, mkdirSync, writeFileSync, cpSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getAllPosts } from '../src/lib/posts.ts';
 
 const DIST_DIR = join(import.meta.dir, '..', 'dist');
 
+function makeRelativeHtml(html: string, depth: number): string {
+	const prefix = depth === 0 ? './' : '../'.repeat(depth);
+
+	let out = html;
+
+	// Replace static asset and client chunk paths
+	out = out.replaceAll('/_mochi/', `${prefix}_mochi/`);
+	out = out.replaceAll('/favicon.ico', `${prefix}favicon.ico`);
+	out = out.replaceAll('/blr.jpg', `${prefix}blr.jpg`);
+
+	// Replace internal site links
+	out = out.replaceAll('href="/about"', `href="${prefix}about/"`);
+	out = out.replaceAll('href="/writing"', `href="${prefix}writing/"`);
+	out = out.replaceAll('href="/"', `href="${prefix}"`);
+
+	// Replace dynamic post links href="/writing/..."
+	out = out.replace(/href="\/writing\/([^"]+)"/g, `href="${prefix}writing/$1/"`);
+
+	return out;
+}
+
 async function exportStaticSite() {
-	console.log('🚀 Generating static export for Cloudflare Pages...');
+	console.log('🚀 Generating static export for GitHub Pages / static hosting...');
 
 	// Ensure dist directory exists
 	if (!existsSync(DIST_DIR)) {
@@ -34,7 +55,22 @@ async function exportStaticSite() {
 		console.log('  ✓ Copied client scripts & stylesheets to dist/_mochi/');
 	}
 
-	// 3. Start temporary Mochi server to prerender routes
+	// 3. Rewrite all JS client chunks in dist/_mochi/client to use relative imports
+	const distClientDir = join(DIST_DIR, '_mochi', 'client');
+	if (existsSync(distClientDir)) {
+		const files = readdirSync(distClientDir);
+		for (const file of files) {
+			if (file.endsWith('.js')) {
+				const filePath = join(distClientDir, file);
+				const content = readFileSync(filePath, 'utf-8');
+				const rewritten = content.replaceAll('/_mochi/client/', './');
+				writeFileSync(filePath, rewritten, 'utf-8');
+			}
+		}
+		console.log('  ✓ Rewrote client bundle imports to relative paths');
+	}
+
+	// 4. Start temporary Mochi server to prerender routes
 	const PORT = 8787;
 	process.env.PORT = String(PORT);
 	process.env.MODE = 'production';
@@ -65,18 +101,22 @@ async function exportStaticSite() {
 		throw new Error('Local server failed to start for prerendering.');
 	}
 
-	// 4. List of all routes to prerender
-	const routes: string[] = ['/', '/about', '/writing'];
+	// 5. List of all routes to prerender with their folder depth
+	const routeEntries: { route: string; depth: number }[] = [
+		{ route: '/', depth: 0 },
+		{ route: '/about', depth: 1 },
+		{ route: '/writing', depth: 1 },
+	];
 
 	// Add all post routes dynamically
 	const posts = await getAllPosts();
 	for (const post of posts) {
-		routes.push(`/writing/${post.slug}`);
+		routeEntries.push({ route: `/writing/${post.slug}`, depth: 2 });
 	}
 
-	console.log(`  ✓ Prerendering ${routes.length} routes...`);
+	console.log(`  ✓ Prerendering ${routeEntries.length} routes...`);
 
-	for (const route of routes) {
+	for (const { route, depth } of routeEntries) {
 		const url = `http://127.0.0.1:${PORT}${route}`;
 		const res = await fetch(url);
 		if (!res.ok) {
@@ -84,7 +124,8 @@ async function exportStaticSite() {
 			continue;
 		}
 
-		const html = await res.text();
+		const rawHtml = await res.text();
+		const relativeHtml = makeRelativeHtml(rawHtml, depth);
 
 		// Determine target path in dist
 		let outPath: string;
@@ -96,15 +137,15 @@ async function exportStaticSite() {
 			outPath = join(subDir, 'index.html');
 		}
 
-		writeFileSync(outPath, html, 'utf-8');
-		console.log(`  ✓ Prerendered ${route} -> ${outPath.replace(DIST_DIR, 'dist')}`);
+		writeFileSync(outPath, relativeHtml, 'utf-8');
+		console.log(`  ✓ Prerendered ${route} (depth ${depth}) -> ${outPath.replace(DIST_DIR, 'dist')}`);
 	}
 
-	// 5. Create .nojekyll for GitHub Pages compatibility (allows _mochi directory)
+	// 6. Create .nojekyll for GitHub Pages compatibility (allows _mochi directory)
 	writeFileSync(join(DIST_DIR, '.nojekyll'), '', 'utf-8');
 	console.log('  ✓ Created .nojekyll for GitHub Pages');
 
-	// 6. Cleanup server process
+	// 7. Cleanup server process
 	serverProcess.kill();
 	console.log('🎉 Static export complete in dist/ directory!');
 }
