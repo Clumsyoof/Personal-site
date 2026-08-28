@@ -1,12 +1,9 @@
 <script lang="ts">
-	import { writingStore } from '../stores/writing.ts';
 	import type { Post } from '../posts.ts';
 
 	export let post: Post | null = null;
 
-	const { selectedPost } = writingStore;
-
-	$: currentPost = post ?? $selectedPost;
+	$: currentPost = post;
 </script>
 
 <div class="entry-viewer card square-card">

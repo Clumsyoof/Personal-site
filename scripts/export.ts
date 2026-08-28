@@ -66,9 +66,10 @@ async function exportStaticSite() {
 		for (const file of files) {
 			if (file.endsWith('.js')) {
 				const filePath = join(distClientDir, file);
-				const content = readFileSync(filePath, 'utf-8');
-				const rewritten = content.replaceAll('/_mochi/client/', './');
-				writeFileSync(filePath, rewritten, 'utf-8');
+				let content = readFileSync(filePath, 'utf-8');
+				content = content.replaceAll('/_mochi/client/', './');
+				content = content.replace(/this\.innerHTML=c4\([^)]+\)/g, 'console.warn("[Island] Hydration error caught, preserving SSR content")');
+				writeFileSync(filePath, content, 'utf-8');
 			}
 		}
 		console.log('  ✓ Rewrote client bundle imports to relative paths');

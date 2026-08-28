@@ -1,15 +1,20 @@
 <script lang="ts">
-	import { writingStore } from '../stores/writing.ts';
 	import EntryViewer from './EntryViewer.svelte';
 	import Navbar from './Navbar.svelte';
 	import type { Post } from '../posts.ts';
 
 	export let posts: Post[] = [];
 
-	const { selectedSlug, selectPost, setPosts, selectedPost } = writingStore;
+	let selectedSlug: string | null = posts && posts.length > 0 ? posts[0].slug : null;
 
-	$: if (posts) {
-		setPosts(posts);
+	$: if (!selectedSlug && posts && posts.length > 0) {
+		selectedSlug = posts[0].slug;
+	}
+
+	$: selectedPost = (posts && posts.find((p) => p.slug === selectedSlug)) || (posts && posts[0]) || null;
+
+	function selectPost(slug: string) {
+		selectedSlug = slug;
 	}
 </script>
 
@@ -26,13 +31,13 @@
 			{#if posts && posts.length > 0}
 				<ul class="post-list">
 					{#each posts as post, i}
-						<li class="post-row" class:is-selected={$selectedSlug === post.slug}>
+						<li class="post-row" class:is-selected={selectedSlug === post.slug}>
 							<span class="post-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
 							<button
 								type="button"
 								class="post-btn"
 								on:click={() => selectPost(post.slug)}
-								aria-pressed={$selectedSlug === post.slug}
+								aria-pressed={selectedSlug === post.slug}
 							>
 								<div class="post-meta">
 									<time class="post-date">{post.date}</time>
@@ -69,7 +74,7 @@
 
 	<!-- Entry Content Block: Expanded by shifting left boundary by 13 grid spaces (23 + 13 = 36 modules) -->
 	<aside class="entry-viewer-block" id="entry-viewer-container" aria-label="Entry Viewer">
-		<EntryViewer post={$selectedPost} />
+		<EntryViewer post={selectedPost} />
 	</aside>
 
 	<!-- Unified Navigation strictly at Line 26 (26 * 32px = 832px) -->
