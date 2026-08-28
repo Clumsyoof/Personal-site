@@ -9,17 +9,21 @@ function makeRelativeHtml(html: string, depth: number): string {
 
 	let out = html;
 
-	// Replace static asset and client chunk paths
+	// 1. Fix component-url in mochi-hydratable-island:
+	// HydratableIsland runs inside _mochi/client/, so dynamic import must be relative to that directory (./_hydrate-*.js)
+	out = out.replaceAll('component-url="/_mochi/client/', 'component-url="./');
+
+	// 2. Fix CSS and JS asset paths in HTML headers/scripts
 	out = out.replaceAll('/_mochi/', `${prefix}_mochi/`);
 	out = out.replaceAll('/favicon.ico', `${prefix}favicon.ico`);
 	out = out.replaceAll('/blr.jpg', `${prefix}blr.jpg`);
 
-	// Replace internal site links
+	// 3. Fix internal navigation links
 	out = out.replaceAll('href="/about"', `href="${prefix}about/"`);
 	out = out.replaceAll('href="/writing"', `href="${prefix}writing/"`);
 	out = out.replaceAll('href="/"', `href="${prefix}"`);
 
-	// Replace dynamic post links href="/writing/..."
+	// 4. Fix dynamic post links
 	out = out.replace(/href="\/writing\/([^"]+)"/g, `href="${prefix}writing/$1/"`);
 
 	return out;
