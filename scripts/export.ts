@@ -100,7 +100,11 @@ async function exportStaticSite() {
 		console.log(`  ✓ Prerendered ${route} -> ${outPath.replace(DIST_DIR, 'dist')}`);
 	}
 
-	// 5. Cleanup server process
+	// 5. Create .nojekyll for GitHub Pages compatibility (allows _mochi directory)
+	writeFileSync(join(DIST_DIR, '.nojekyll'), '', 'utf-8');
+	console.log('  ✓ Created .nojekyll for GitHub Pages');
+
+	// 6. Cleanup server process
 	serverProcess.kill();
 	console.log('🎉 Static export complete in dist/ directory!');
 }
