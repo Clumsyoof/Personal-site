@@ -7,7 +7,6 @@
   },
   "scripts": {
     "build": "mochi-framework build",
-    "build:pages": "bun run build && bun scripts/export.ts",
     "start": "bun src/index.ts",
     "dev": "MODE=development bun src/index.ts",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --compiler-warnings 'attribute_illegal_colon:ignore' && tsc -p tsconfig.json --noEmit",
