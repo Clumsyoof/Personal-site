@@ -1,0 +1,39 @@
+# Robots.txt for Advik Kaushik Portfolio
+# Allow public search engines (Google, Bing, DuckDuckGo) full access for human discovery
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+Allow: /
+
+# Allow AI Search & Discovery bots to index high-level metadata (Titles, Bio, Skills)
+# while disallowing deep article bodies, assets, and images
+User-agent: PerplexityBot
+User-agent: ChatGPT-User
+Allow: /$
+Allow: /about
+Allow: /writing$
+Disallow: /writing/
+Disallow: /images/
+Disallow: /assets/
+
+# Disallow bulk AI Training crawlers from deep content, code, and image datasets
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Meta-ExternalAgent
+User-agent: FacebookBot
+User-agent: Bytespider
+User-agent: Applebot-Extended
+User-agent: cohere-ai
+User-agent: Diffbot
+User-agent: Omgilibot
+User-agent: Amazonbot
+Allow: /$
+Allow: /about
+Allow: /writing$
+Disallow: /writing/
+Disallow: /images/
+Disallow: /assets/
